@@ -387,6 +387,61 @@ def stats():
     })
 
 
+@app.route('/analyze', methods=['POST'])
+def analyze_for_apify():
+    """
+    Endpoint pentru Apify webhook.
+    Primește HTML și returnează analiză JSON cu alerte.
+    """
+    try:
+        data = request.get_json()
+        
+        if not data or 'html' not in data:
+            return jsonify({'error': 'Missing html field'}), 400
+        
+        html_content = data['html']
+        monitor_number = data.get('monitor', 0)
+        
+        # Parsează monitorul
+        acts = parse_monitor(html_content, monitor_number)
+        
+        # Generează alertele pentru Apify
+        alerts = []
+        for act in acts:
+            # Alertă pentru companii din TOP cu operațiuni de interes major
+            if act.in_top and act.is_high_interest:
+                alerts.append({
+                    'companie': act.denumire,
+                    'cui': act.cui,
+                    'operatiuni': [act.tip_operatiune],
+                    'motiv': f'Companie TOP #{act.rank} (CA: {act.ca:,} lei) - operațiune de interes major',
+                    'monitor': monitor_number,
+                    'categorie_ca': act.categorie_ca
+                })
+            # Alertă pentru orice companie TOP (chiar și fără operațiuni majore)
+            elif act.in_top:
+                alerts.append({
+                    'companie': act.denumire,
+                    'cui': act.cui,
+                    'operatiuni': [act.tip_operatiune],
+                    'motiv': f'Companie TOP #{act.rank} (CA: {act.ca:,} lei)',
+                    'monitor': monitor_number,
+                    'categorie_ca': act.categorie_ca
+                })
+        
+        return jsonify({
+            'monitor': monitor_number,
+            'total_acts': len(acts),
+            'total_alerts': len(alerts),
+            'alerts': alerts,
+            'top_companies_found': sum(1 for a in acts if a.in_top),
+            'high_interest_found': sum(1 for a in acts if a.in_top and a.is_high_interest)
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     debug = os.environ.get('DEBUG', 'false').lower() == 'true'
