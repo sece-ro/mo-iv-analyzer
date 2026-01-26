@@ -35,8 +35,8 @@ Sistem automat de analiză a **Monitorului Oficial Partea IV** (publicații ale 
 
 ## Autor
 
-**Adrian Seceleanu** - Ziarul Financiar
+**Adrian Seceleanu**
 
 ## Licență
 
-Proprietar - Ziarul Financiar
+Proprietar - Adrian Seceleanu
